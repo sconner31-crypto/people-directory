@@ -2,26 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>People Directory (POC)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>People Directory</title>
 
+  <!-- Tabulator -->
   <link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css" rel="stylesheet">
   <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
 
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
     .controls { display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 12px; align-items:center; }
-    input { padding: 8px; min-width: 280px; }
-    .person { display:flex; gap:10px; align-items:center; }
-    .avatar { width:36px; height:36px; border-radius:999px; object-fit:cover; }
+    input[type="search"] { padding: 8px 10px; min-width: 320px; }
     .muted { opacity: .75; font-size: 12px; }
+
+    .person { display:flex; gap:10px; align-items:center; }
+    .avatar, .avatar-fallback {
+      width:36px; height:36px; border-radius:999px;
+      display:inline-flex; align-items:center; justify-content:center;
+      overflow:hidden;
+    }
+    .avatar { object-fit:cover; }
+    .avatar-fallback { font-size:12px; font-weight:600; background:#eee; }
+
+    a { text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
-<body>
 
+<body>
   <div class="controls">
     <input id="search" type="search" placeholder="Search name, title, expertise, supervisor..." />
-    <span class="muted">POC</span>
+    <span class="muted">Source: people-public.json</span>
   </div>
 
   <div id="people-table"></div>
@@ -31,7 +42,17 @@
 
     function expertiseToText(expertiseArr){
       const arr = Array.isArray(expertiseArr) ? expertiseArr : [];
-      return arr.map(x => x && x.Value ? x.Value : "").filter(Boolean).join("; ");
+      return arr
+        .map(x => (x && typeof x === "object") ? (x.Value || "") : String(x || ""))
+        .filter(Boolean)
+        .join("; ");
+    }
+
+    function initialsFromName(nameText){
+      const txt = (nameText || "").replace(",", " ").trim();
+      if(!txt) return "";
+      const parts = txt.split(/\s+/).filter(Boolean);
+      return parts.slice(0,2).map(p => (p[0] || "").toUpperCase()).join("");
     }
 
     const table = new Tabulator("#people-table", {
@@ -40,7 +61,7 @@
       pagination: "local",
       paginationSize: 25,
       placeholder: "No people found",
-      initialSort: [{column:"name", dir:"asc"}],
+      initialSort: [{ column: "name", dir: "asc" }],
       columns: [
         {
           title: "Person",
@@ -49,11 +70,38 @@
           headerFilter: true,
           formatter: (cell) => {
             const row = cell.getRow().getData();
-            const img = row.photo ? `<img class="avatar" src="${row.photo}" alt="">` : "";
-            return `<div class="person">${img}<div>${row.name || ""}</div></div>`;
+
+            const profileUrl = (row.profileUrl || "").trim();
+            const nameText = row.name || "";
+
+            // Prefer public Imperial Profiles thumbnail, then O365 photo as fallback
+            const photoUrl = (row.profilePhotoUrl || row.O365Photo || "").trim();
+
+            const nameHtml = profileUrl
+              ? `<a href="${profileUrl}" target="_blank" rel="noopener">${nameText}</a>`
+              : nameText;
+
+            const initials = initialsFromName(nameText);
+
+            const imgHtml = photoUrl
+              ? `<img class="avatar" src="${photoUrl}" alt=""
+                   onerror="this.style.display='none'; this.parentElement.querySelector('.avatar-fallback').style.display='inline-flex';">`
+              : "";
+
+            const fallbackDisplay = photoUrl ? "none" : "inline-flex";
+
+            return `
+              <div class="person">
+                <div style="position:relative;">
+                  ${imgHtml}
+                  <div class="avatar-fallback" style="display:${fallbackDisplay};">${initials}</div>
+                </div>
+                <div>${nameHtml}</div>
+              </div>
+            `;
           }
         },
-        {title: "Job Title", field: "title", sorter: "string", headerFilter: true},
+        { title: "Job Title", field: "title", sorter: "string", headerFilter: true },
         {
           title: "Research Expertise",
           field: "expertise",
@@ -66,16 +114,24 @@
           },
           formatter: (cell) => expertiseToText(cell.getValue())
         },
-        {title: "Year of Arrival", field: "year", sorter: "number", hozAlign:"right", headerFilter: true},
-        {title: "Supervisor", field: "supervisor", sorter: "string", headerFilter: true},
-      ],
+        { title: "Year of Arrival", field: "year", sorter: "number", hozAlign: "right", headerFilter: true },
+        { title: "Supervisor", field: "supervisor", sorter: "string", headerFilter: true }
+      ]
     });
 
-    fetch(DATA_URL)
+    // Load data (supports either [ ... ] or { body: [ ... ] } shapes)
+    fetch(DATA_URL, { cache: "no-store" })
       .then(r => r.json())
-      .then(data => table.setData(data))
-      .catch(err => { console.error(err); table.replaceData([]); });
+      .then(data => {
+        const rows = Array.isArray(data) ? data : (Array.isArray(data?.body) ? data.body : []);
+        table.setData(rows);
+      })
+      .catch(err => {
+        console.error("Failed to load JSON:", err);
+        table.replaceData([]);
+      });
 
+    // Global search across key fields
     document.getElementById("search").addEventListener("input", (e) => {
       const q = (e.target.value || "").toLowerCase().trim();
       if (!q) { table.clearFilter(true); return; }
@@ -86,6 +142,7 @@
           expertiseToText(row.expertise),
           row.year == null ? "" : String(row.year)
         ].join(" ").toLowerCase();
+
         return hay.includes(q);
       });
     });
