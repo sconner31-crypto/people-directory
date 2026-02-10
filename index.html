@@ -40,13 +40,45 @@
   <script>
     const DATA_URL = "./people-public.json";
 
-    function expertiseToText(expertiseArr){
-      const arr = Array.isArray(expertiseArr) ? expertiseArr : [];
-      return arr
-        .map(x => (x && typeof x === "object") ? (x.Value || "") : String(x || ""))
-        .filter(Boolean)
-        .join("; ");
+    function expertiseToText(expertise) {
+  if (expertise == null) return "";
+
+  // If it's a string, it might already be "Choice 1; Choice 2"
+  // OR it might be a stringified JSON array.
+  if (typeof expertise === "string") {
+    const s = expertise.trim();
+    if (!s) return "";
+    if (s.startsWith("[") || s.startsWith("{")) {
+      try {
+        return expertiseToText(JSON.parse(s));
+      } catch {
+        return s; // fall back to raw string
+      }
     }
+    return s;
+  }
+
+  // If it's an array, support arrays of objects or strings
+  if (Array.isArray(expertise)) {
+    return expertise
+      .map(x => {
+        if (x == null) return "";
+        if (typeof x === "string") return x;
+        if (typeof x === "object") return x.Value || x.value || "";
+        return String(x);
+      })
+      .filter(Boolean)
+      .join("; ");
+  }
+
+  // If it's a single object
+  if (typeof expertise === "object") {
+    return expertise.Value || expertise.value || "";
+  }
+
+  return String(expertise);
+}
+
 
     function initialsFromName(nameText){
       const txt = (nameText || "").replace(",", " ").trim();
