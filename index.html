@@ -10,81 +10,276 @@
   <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
 
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-    .controls { display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 12px; align-items:center; }
-    input[type="search"] { padding: 8px 10px; min-width: 320px; }
-    .muted { opacity: .75; font-size: 12px; }
-
-    .person { display:flex; gap:10px; align-items:center; }
-    .avatar, .avatar-fallback {
-      width:36px; height:36px; border-radius:999px;
-      display:inline-flex; align-items:center; justify-content:center;
-      overflow:hidden;
+    :root{
+      --ic-blue: #003e74;      /* close to Imperial blue */
+      --ic-blue-2: #1a5182;
+      --bg: #ffffff;
+      --text: #1a1a1a;
+      --muted: #5a5a5a;
+      --line: #e6e6e6;
+      --chip: #eef3f7;
+      --chip-text: #123b5d;
+      --focus: #2b7cff;
+      --radius: 10px;
     }
-    .avatar { object-fit:cover; }
-    .avatar-fallback { font-size:12px; font-weight:600; background:#eee; }
 
-    a { text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+    }
+
+    .wrap{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    .page-head{
+      margin: 6px 0 16px;
+      display:flex;
+      gap:12px;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .page-head h1{
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: .2px;
+      color: var(--ic-blue);
+    }
+
+    .page-head .meta{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Search bar styling (Imperial-ish) */
+    .searchbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fafafa;
+      margin-bottom: 14px;
+    }
+
+    .searchbar label{
+      font-weight: 600;
+      color: var(--ic-blue);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .searchbar input[type="search"]{
+      flex: 1;
+      min-width: 220px;
+      padding: 10px 12px;
+      border: 1px solid #cfd8e3;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      outline: none;
+    }
+
+    .searchbar input[type="search"]:focus{
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(43,124,255,.18);
+    }
+
+    .btn{
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #cfd8e3;
+      background: white;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--ic-blue);
+    }
+    .btn:focus{ outline: none; box-shadow: 0 0 0 3px rgba(43,124,255,.18); }
+
+    /* Person row layout */
+    .person{
+      display:flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .avatar, .avatar-fallback{
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      background: white;
+    }
+
+    .avatar{ object-fit: cover; }
+    .avatar-fallback{
+      font-weight: 700;
+      color: var(--ic-blue);
+      background: #f1f5f9;
+      font-size: 13px;
+    }
+
+    .person-main{
+      min-width: 0;
+      display:flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .person-name{
+      font-weight: 800;
+      line-height: 1.1;
+      font-size: 14px;
+    }
+
+    .person-name a{
+      color: var(--ic-blue);
+      text-decoration: none;
+    }
+    .person-name a:hover{ text-decoration: underline; }
+
+    .person-title{
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .chips{
+      margin-top: 6px;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip{
+      background: var(--chip);
+      color: var(--chip-text);
+      border: 1px solid #d5e3ef;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    /* Tabulator: make it feel more like a list */
+    .tabulator{
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .tabulator .tabulator-header{
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+    }
+    .tabulator .tabulator-header .tabulator-col{
+      background: #ffffff;
+      font-weight: 800;
+      color: var(--ic-blue);
+    }
+    .tabulator-row{
+      border-bottom: 1px solid var(--line);
+    }
+    .tabulator-row:last-child{
+      border-bottom: none;
+    }
+    .tabulator .tabulator-footer{
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    /* Responsive: hide some columns on small screens */
+    @media (max-width: 720px){
+      .page-head h1{ font-size: 18px; }
+    }
   </style>
 </head>
 
 <body>
-  <div class="controls">
-    <input id="search" type="search" placeholder="Search name, title, expertise, supervisor..." />
-    <span class="muted">Source: people-public.json</span>
-  </div>
+  <div class="wrap">
+    <div class="page-head">
+      <h1>People directory</h1>
+      <div class="meta">Data source: <code>people-public.json</code></div>
+    </div>
 
-  <div id="people-table"></div>
+    <div class="searchbar">
+      <label for="search">Search</label>
+      <input id="search" type="search" placeholder="Name, job title, expertise, supervisor…" />
+      <button id="clear" class="btn" type="button">Clear</button>
+    </div>
+
+    <div id="people-table"></div>
+  </div>
 
   <script>
     const DATA_URL = "./people-public.json";
 
-    function expertiseToText(expertise) {
-  if (expertise == null) return "";
+    function expertiseToArray(expertise){
+      if (expertise == null) return [];
+      if (Array.isArray(expertise)) return expertise;
 
-  // If it's a string, it might already be "Choice 1; Choice 2"
-  // OR it might be a stringified JSON array.
-  if (typeof expertise === "string") {
-    const s = expertise.trim();
-    if (!s) return "";
-    if (s.startsWith("[") || s.startsWith("{")) {
-      try {
-        return expertiseToText(JSON.parse(s));
-      } catch {
-        return s; // fall back to raw string
+      if (typeof expertise === "string") {
+        const s = expertise.trim();
+        if (!s) return [];
+        // Might be stringified JSON
+        if (s.startsWith("[") || s.startsWith("{")) {
+          try { return expertiseToArray(JSON.parse(s)); } catch { return s.split(";").map(x=>x.trim()).filter(Boolean); }
+        }
+        // "Choice 1; Choice 2"
+        return s.split(";").map(x=>x.trim()).filter(Boolean);
       }
-    }
-    return s;
-  }
 
-  // If it's an array, support arrays of objects or strings
-  if (Array.isArray(expertise)) {
-    return expertise
-      .map(x => {
+      if (typeof expertise === "object") return [expertise];
+      return [String(expertise)];
+    }
+
+    function expertiseToText(expertise){
+      const arr = expertiseToArray(expertise);
+      return arr.map(x => {
         if (x == null) return "";
         if (typeof x === "string") return x;
         if (typeof x === "object") return x.Value || x.value || "";
         return String(x);
-      })
-      .filter(Boolean)
-      .join("; ");
-  }
+      }).filter(Boolean).join("; ");
+    }
 
-  // If it's a single object
-  if (typeof expertise === "object") {
-    return expertise.Value || expertise.value || "";
-  }
+    function expertiseToChips(expertise){
+      const arr = expertiseToArray(expertise).map(x => {
+        if (x == null) return "";
+        if (typeof x === "string") return x;
+        if (typeof x === "object") return x.Value || x.value || "";
+        return String(x);
+      }).filter(Boolean);
 
-  return String(expertise);
-}
-
+      return arr.map(v => `<span class="chip">${escapeHtml(v)}</span>`).join("");
+    }
 
     function initialsFromName(nameText){
       const txt = (nameText || "").replace(",", " ").trim();
       if(!txt) return "";
       const parts = txt.split(/\s+/).filter(Boolean);
       return parts.slice(0,2).map(p => (p[0] || "").toUpperCase()).join("");
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
     }
 
     const table = new Tabulator("#people-table", {
@@ -100,23 +295,26 @@
           field: "name",
           sorter: "string",
           headerFilter: true,
+          widthGrow: 2,
           formatter: (cell) => {
             const row = cell.getRow().getData();
-
             const profileUrl = (row.profileUrl || "").trim();
             const nameText = row.name || "";
 
-            // Prefer public Imperial Profiles thumbnail, then O365 photo as fallback
             const photoUrl = (row.profilePhotoUrl || row.O365Photo || "").trim();
-
-            const nameHtml = profileUrl
-              ? `<a href="${profileUrl}" target="_blank" rel="noopener">${nameText}</a>`
-              : nameText;
-
             const initials = initialsFromName(nameText);
 
+            const nameHtml = profileUrl
+              ? `<a href="${escapeHtml(profileUrl)}" target="_blank" rel="noopener">${escapeHtml(nameText)}</a>`
+              : escapeHtml(nameText);
+
+            const titleHtml = row.title ? `<div class="person-title">${escapeHtml(row.title)}</div>` : "";
+
+            const chipsHtml = expertiseToChips(row.expertise);
+            const chipsBlock = chipsHtml ? `<div class="chips">${chipsHtml}</div>` : "";
+
             const imgHtml = photoUrl
-              ? `<img class="avatar" src="${photoUrl}" alt=""
+              ? `<img class="avatar" src="${escapeHtml(photoUrl)}" alt=""
                    onerror="this.style.display='none'; this.parentElement.querySelector('.avatar-fallback').style.display='inline-flex';">`
               : "";
 
@@ -126,32 +324,50 @@
               <div class="person">
                 <div style="position:relative;">
                   ${imgHtml}
-                  <div class="avatar-fallback" style="display:${fallbackDisplay};">${initials}</div>
+                  <div class="avatar-fallback" style="display:${fallbackDisplay};">${escapeHtml(initials)}</div>
                 </div>
-                <div>${nameHtml}</div>
+                <div class="person-main">
+                  <div class="person-name">${nameHtml}</div>
+                  ${titleHtml}
+                  ${chipsBlock}
+                </div>
               </div>
             `;
           }
         },
-        { title: "Job Title", field: "title", sorter: "string", headerFilter: true },
+        { title: "Supervisor", field: "supervisor", sorter: "string", headerFilter: true },
         {
-          title: "Research Expertise",
-          field: "expertise",
-          sorter: (a,b) => expertiseToText(a).localeCompare(expertiseToText(b)),
-          headerFilter: true,
-          headerFilterFunc: (headerValue, rowValue) => {
-            const hv = (headerValue || "").toLowerCase().trim();
-            if(!hv) return true;
-            return expertiseToText(rowValue).toLowerCase().includes(hv);
-          },
-          formatter: (cell) => expertiseToText(cell.getValue())
-        },
-        { title: "Year of Arrival", field: "year", sorter: "number", hozAlign: "right", headerFilter: true },
-        { title: "Supervisor", field: "supervisor", sorter: "string", headerFilter: true }
+          title: "Year",
+          field: "year",
+          sorter: "number",
+          hozAlign: "right",
+          headerFilter: true
+        }
       ]
     });
 
-    // Load data (supports either [ ... ] or { body: [ ... ] } shapes)
+    function setGlobalSearch(q){
+      const query = (q || "").toLowerCase().trim();
+      if (!query) { table.clearFilter(true); return; }
+
+      table.setFilter((row) => {
+        const hay = [
+          row.name, row.email, row.title, row.supervisor,
+          expertiseToText(row.expertise),
+          row.year == null ? "" : String(row.year)
+        ].join(" ").toLowerCase();
+
+        return hay.includes(query);
+      });
+    }
+
+    document.getElementById("search").addEventListener("input", (e) => setGlobalSearch(e.target.value));
+    document.getElementById("clear").addEventListener("click", () => {
+      document.getElementById("search").value = "";
+      setGlobalSearch("");
+      document.getElementById("search").focus();
+    });
+
     fetch(DATA_URL, { cache: "no-store" })
       .then(r => r.json())
       .then(data => {
@@ -162,22 +378,6 @@
         console.error("Failed to load JSON:", err);
         table.replaceData([]);
       });
-
-    // Global search across key fields
-    document.getElementById("search").addEventListener("input", (e) => {
-      const q = (e.target.value || "").toLowerCase().trim();
-      if (!q) { table.clearFilter(true); return; }
-
-      table.setFilter((row) => {
-        const hay = [
-          row.name, row.email, row.title, row.supervisor,
-          expertiseToText(row.expertise),
-          row.year == null ? "" : String(row.year)
-        ].join(" ").toLowerCase();
-
-        return hay.includes(q);
-      });
-    });
   </script>
 </body>
 </html>
